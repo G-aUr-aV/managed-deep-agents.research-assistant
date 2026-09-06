@@ -7,7 +7,7 @@ from tools.search import internet_search
 from tools.customer import lookup_customer
 
 model = ChatOpenAI(
-    model="deepseek-ai/DeepSeek-V4-Flash-0731",
+    model=os.environ["DEEPINFRA_MODEL"],
     base_url="https://api.deepinfra.com/v1",
     api_key=os.environ["DEEPINFRA_API_KEY"],
 )
