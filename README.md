@@ -2,7 +2,7 @@
 
 A research assistant [Managed Deep Agent](https://docs.langchain.com/langsmith/python/managed-deep-agents-overview) built with `[managed-deepagents](https://github.com/langchain-ai/managed-deepagents)` `0.7.3`.
 
-It searches the web with Tavily, answers with citations, and runs a DeepInfra chat model through the OpenAI-compatible API. Managed Deep Agents is in public beta and currently runs on **US LangSmith Cloud** only.
+It searches the web with Tavily, searches scholarly papers through OpenAlex, answers with citations, and keeps shared durable notes. It runs a DeepInfra chat model through the OpenAI-compatible API. Managed Deep Agents is in public beta and currently runs on **US LangSmith Cloud** only.
 
 The agent id and default deployment name is `research-assistant-preview` (`define_deep_agent(name=...)` in `agent.py`). Override the LangSmith deployment name with `mda deploy --name` if needed.
 
@@ -26,12 +26,21 @@ research-assistant/
   .env                     # secrets; never commit
   .env.example             # placeholder names for required keys
   identity.py              # who may call the deployment (LangSmith API key)
+  memory.py                # opt-in durable memory (shared by every caller)
   tools/search.py          # Tavily internet_search
-  tools/customer.py        # lookup_customer demo tool
+  tools/papers.py          # OpenAlex scholarly paper search
+  tools/context7.py        # Context7 library documentation lookup
   skills/qa/               # clarifying-question skill
+  skills/research/         # outline → search → notes → cited brief
+  skills/deep-research/    # rigorous multi-source investigations
+  skills/citation-hygiene/ # source selection and claim-to-citation checks
+  skills/daily-recap/      # progress and activity summaries
+  skills/response-formatting/ # response structure and presentation
+  evals/cited-research/    # Harbor task (not deployed)
+  evals/harbor-job.json    # Harbor job config from `mda evals init`
 ```
 
-There is no `sandbox/` directory, so MDA does not provision a LangSmith sandbox. There is no `memory.py`, so nothing is kept between runs. MCP connectors (`connectors/mcp.py`) are not supported.
+`memory.py` mounts one Context Hub tree at `/memories/agent/` for **all** callers of the deployment and preserves it across redeployments of that same deployment. It is not shared between separately named deployments and is removed if the deployment is deleted. Do not store personal data, customer records, or credentials there. MCP connectors (`connectors/mcp.py`) are not supported. Restart `mda dev` after adding or changing `memory.py` — it is discovered at compile time, not by hot reload.
 
 ## Install
 
@@ -60,7 +69,7 @@ uv run mda dev --hostname 0.0.0.0 --port 2024 --no-browser
 
 To expose the same local server over a public HTTPS URL, use a [Cloudflare Quick Tunnel](#cloudflare-quick-tunnel) instead of binding `0.0.0.0`.
 
-`mda dev` requires `uv` on `PATH`. It resolves the local LangGraph development server itself, so you do not need a global `langgraph` CLI. Restart `mda dev` after adding a managed file such as `memory.py` or `sandbox/` — those are discovered at compile time, not by hot reload.
+`mda dev` requires `uv` on `PATH`. It resolves the local LangGraph development server itself, so you do not need a global `langgraph` CLI. Restart `mda dev` after adding or changing `memory.py` — it is discovered at compile time, not by hot reload.
 
 ### Cloudflare Quick Tunnel
 
@@ -98,7 +107,7 @@ Use the printed HTTPS URL when connecting from another machine or through LangSm
 
 `identity.py` authenticates callers with a LangSmith workspace API key (`x-api-key`). That answers whether a caller is allowed; it does **not** give each person private threads. Anyone holding the key can reach the deployment.
 
-For signed-in end users with private threads, switch to Supabase identity (`auth.supabase(...)`). Durable memory is a separate opt-in (`memory.py`) and is shared by every caller of the deployment.
+For signed-in end users with private threads, switch to Supabase identity (`auth.supabase(...)`). Durable memory (`memory.py`) is still shared by every caller of the deployment even with Supabase identity.
 
 ## Skills and tools
 
@@ -106,28 +115,62 @@ For signed-in end users with private threads, switch to Supabase identity (`auth
 | Piece             | Role                                                           |
 | ----------------- | -------------------------------------------------------------- |
 | `internet_search` | Tavily web search (`TAVILY_API_KEY`)                           |
-| `lookup_customer` | Demo CRM lookup                                                |
+| `paper_search`    | OpenAlex scholarly paper search (optional contact email)        |
+| `context7_docs`   | Focused library/framework documentation (`CONTEXT7_API_KEY`)   |
 | `skills/qa`       | Ask up to three clarifying questions when the request is vague |
+| `skills/research` | Outline, search web and scholarly papers, note-take, cited brief |
+| `skills/deep-research` | Decompose, triangulate, and synthesize complex investigations |
+| `skills/citation-hygiene` | Match claims with authoritative sources and citations |
+| `skills/daily-recap` | Summarize progress, decisions, open items, and next actions |
+| `skills/response-formatting` | Choose clear structure, formatting, and citation placement |
 
 
 `mda deploy` syncs `instructions.md` and `skills/**` to Context Hub. You can edit them in the LangSmith UI without a full code redeploy; a later deploy overwrites deploy-owned context from this repo.
 
 ## Evaluate
 
-Managed Deep Agent evals are [Harbor](https://www.harborframework.com/docs/tasks) evals. Author complete tasks under `evals/tasks/<task>/`. To start from a minimal task:
+Managed Deep Agent evals are [Harbor](https://www.harborframework.com/docs/tasks) evals. Tasks are direct children of `evals/` (this project includes `evals/cited-research/`). `evals/` is not included in the deployed build.
+
+Initialize the Harbor workspace once (writes `evals/harbor-job.json` if missing):
 
 ```bash
-mda evals init my-task
+uv run mda evals init
 ```
 
-That writes an optional scaffold under `evals/scaffold/my-task/`. Compile, then run the printed `harbor run` command:
+Harbor does **not** read `.env` unless you pass it. In the shell that runs Harbor, export at least:
 
 ```bash
-mda evals compile .                    # all tasks
-mda evals compile . --task my-task     # only my-task
+export DEEPINFRA_API_KEY DEEPINFRA_MODEL TAVILY_API_KEY LANGSMITH_API_KEY
 ```
 
-`evals/` is not included in the deployed build. Harbor does not read `.env`; export the keys in the shell that runs Harbor.
+Or use `--env-file .env`. Then run (adjust dataset name if you like):
+
+```bash
+HARBOR_LANGSMITH_DATASET=mda-research-assistant-evals \
+PYTHONPATH=.mda/evals/harbor-adapter \
+uv run --env-file .env --python 3.12 --with 'harbor[langsmith]==0.21.0' harbor run \
+  --config evals/harbor-job.json --yes \
+  --plugin mda_harbor.job_plugin:MDAJobPlugin \
+  --plugin mda_harbor.langsmith_plugin:LangSmithPlugin
+```
+
+`cited-research` checks that the agent writes `/app/answer.txt` with web and scholarly-paper citations. Docker is required for Harbor’s default environment.
+
+View the results after a run:
+
+```bash
+uv run --python 3.12 \
+  --with 'harbor[langsmith]==0.21.0' \
+  harbor view .mda/evals/jobs
+```
+
+To inspect one specific run, pass its job directory instead:
+
+```bash
+uv run --python 3.12 \
+  --with 'harbor[langsmith]==0.21.0' \
+  harbor view .mda/evals/jobs/2026-09-20__20-04-43
+```
 
 ## Deploy
 
@@ -162,7 +205,7 @@ In a terminal this streams until you press Ctrl-C. When output is piped or redir
 mda delete
 ```
 
-This removes the deployment, the tracing project created with it, the Context Hub repo for this agent's context and memory, and any managed sandboxes it created. It asks first; pass `--yes` to skip the prompt. Agent memory and thread history are not recoverable afterwards.
+This removes the deployment, the tracing project created with it, and the Context Hub repo for this agent's context and memory. It asks first; pass `--yes` to skip the prompt. Agent memory and thread history are not recoverable afterwards.
 
 ## Environment
 
@@ -176,6 +219,8 @@ Copy `.env.example` to `.env`. `mda deploy` loads `.env` and forwards non-reserv
 | `LANGSMITH_PROJECT`, `LANGSMITH_TRACING`, … | Local / hosted tracing                                                                         |
 | `DEEPINFRA_API_KEY`, `DEEPINFRA_MODEL`      | Chat model in `agent.py`                                                                       |
 | `TAVILY_API_KEY`                            | `internet_search`                                                                              |
+| `CONTEXT7_API_KEY`                          | `context7_docs`                                                                                |
+| `OPENALEX_EMAIL`                            | Optional polite-pool contact for `paper_search`                                                |
 | `LANGFUSE_*`, `OTEL_*`                      | Optional OpenTelemetry export to Langfuse                                                      |
 
 

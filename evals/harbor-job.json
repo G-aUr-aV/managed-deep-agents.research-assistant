@@ -1,0 +1,70 @@
+{
+  "jobs_dir": ".mda/evals/jobs",
+  "n_attempts": 1,
+  "n_concurrent_trials": 1,
+  "quiet": false,
+  "environment": {
+    "type": "docker"
+  },
+  "agents": [
+    {
+      "import_path": "mda_harbor.agent:ManagedDeepAgent",
+      "kwargs": {
+        "artifact_path": ".mda/evals/artifact",
+        "runtime": "auto",
+        "adapter_protocol_version": 1
+      },
+      "env": {
+        "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY:-}",
+        "COHERE_API_KEY": "${COHERE_API_KEY:-}",
+        "DEEPSEEK_API_KEY": "${DEEPSEEK_API_KEY:-}",
+        "FIREWORKS_API_KEY": "${FIREWORKS_API_KEY:-}",
+        "GOOGLE_API_KEY": "${GOOGLE_API_KEY:-}",
+        "GROQ_API_KEY": "${GROQ_API_KEY:-}",
+        "MISTRAL_API_KEY": "${MISTRAL_API_KEY:-}",
+        "OPENAI_API_KEY": "${OPENAI_API_KEY:-}",
+        "PPLX_API_KEY": "${PPLX_API_KEY:-}",
+        "TOGETHER_AI_API_KEY": "${TOGETHER_AI_API_KEY:-}",
+        "XAI_API_KEY": "${XAI_API_KEY:-}",
+        "ANTHROPIC_BASE_URL": "${ANTHROPIC_BASE_URL:-}",
+        "AZURE_OPENAI_API_KEY": "${AZURE_OPENAI_API_KEY:-}",
+        "GOOGLE_GEMINI_BASE_URL": "${GOOGLE_GEMINI_BASE_URL:-}",
+        "LANGSMITH_WORKSPACE_ID": "${LANGSMITH_WORKSPACE_ID:-}",
+        "LANGSMITH_API_KEY": "${LANGSMITH_API_KEY:-}",
+        "LANGSMITH_ENDPOINT": "${LANGSMITH_ENDPOINT:-}",
+        "LANGSMITH_GATEWAY_API_KEY": "${LANGSMITH_GATEWAY_API_KEY:-}",
+        "LANGSMITH_SANDBOX_API_KEY": "${LANGSMITH_SANDBOX_API_KEY:-}",
+        "LANGSMITH_TRACING": "${LANGSMITH_TRACING:-}",
+        "OPENAI_BASE_URL": "${OPENAI_BASE_URL:-}",
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY:-}",
+        "DEEPINFRA_API_KEY": "${DEEPINFRA_API_KEY:-}",
+        "DEEPINFRA_MODEL": "${DEEPINFRA_MODEL:-}",
+        "LANGFUSE_BASE_URL": "${LANGFUSE_BASE_URL:-}",
+        "LANGFUSE_PUBLIC_KEY": "${LANGFUSE_PUBLIC_KEY:-}",
+        "LANGFUSE_SECRET_KEY": "${LANGFUSE_SECRET_KEY:-}",
+        "LANGSMITH_OTEL_ENABLED": "${LANGSMITH_OTEL_ENABLED:-}",
+        "LANGSMITH_PROJECT": "${LANGSMITH_PROJECT:-}",
+        "LANGSMITH_TRACING_MODE": "${LANGSMITH_TRACING_MODE:-}",
+        "MDA_PUBLIC_API_URL": "${MDA_PUBLIC_API_URL:-}",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "${OTEL_EXPORTER_OTLP_ENDPOINT:-}",
+        "OTEL_EXPORTER_OTLP_PROTOCOL": "${OTEL_EXPORTER_OTLP_PROTOCOL:-}",
+        "OTEL_SERVICE_NAME": "${OTEL_SERVICE_NAME:-}",
+        "OPENALEX_EMAIL": "${OPENALEX_EMAIL:-}",
+        "TAVILY_API_KEY": "${TAVILY_API_KEY:-}"
+      },
+      "include_logs": [
+        "**/*"
+      ]
+    }
+  ],
+  "datasets": [
+    {
+      "path": "evals"
+    }
+  ],
+  "verifier": {
+    "include_logs": [
+      "**/*"
+    ]
+  }
+}

@@ -3,8 +3,9 @@ import os
 from langchain_openai import ChatOpenAI
 from managed_deepagents import define_deep_agent
 
+from tools.context7 import context7_docs
+from tools.papers import paper_search
 from tools.search import internet_search
-from tools.customer import lookup_customer
 
 model = ChatOpenAI(
     model=os.environ["DEEPINFRA_MODEL"],
@@ -15,5 +16,5 @@ model = ChatOpenAI(
 agent = define_deep_agent(
     name="research-assistant-preview",
     model=model,
-    tools=[internet_search, lookup_customer],
+    tools=[internet_search, paper_search, context7_docs],
 )
