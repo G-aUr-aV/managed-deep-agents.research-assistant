@@ -2,7 +2,7 @@
 
 A research assistant [Managed Deep Agent](https://docs.langchain.com/langsmith/python/managed-deep-agents-overview) built with `[managed-deepagents](https://github.com/langchain-ai/managed-deepagents)` `0.7.3`.
 
-It searches the web with Tavily, searches scholarly papers through OpenAlex, answers with citations, and keeps shared durable notes. It runs a DeepInfra chat model through the OpenAI-compatible API. Managed Deep Agents is in public beta and currently runs on **US LangSmith Cloud** only.
+It searches the web with Tavily, reads the pages it finds, searches scholarly papers through OpenAlex, answers with citations, and keeps shared durable notes. Routing that must not be optional is enforced in middleware rather than left to the prompt — see [Enforced routing](#enforced-routing). It runs a DeepInfra chat model through the OpenAI-compatible API. Managed Deep Agents is in public beta and currently runs on **US LangSmith Cloud** only.
 
 The agent id and default deployment name is `research-assistant-preview` (`define_deep_agent(name=...)` in `agent.py`). Override the LangSmith deployment name with `mda deploy --name` if needed.
 
@@ -27,9 +27,12 @@ research-assistant/
   .env.example             # placeholder names for required keys
   identity.py              # who may call the deployment (LangSmith API key)
   memory.py                # opt-in durable memory (shared by every caller)
+  middleware/skill_gate.py # enforces skill loading, evidence, and real URLs
   tools/search.py          # Tavily internet_search
+  tools/fetch.py           # Tavily fetch_page — read a source, not a snippet
   tools/papers.py          # OpenAlex scholarly paper search
   tools/context7.py        # Context7 library documentation lookup
+  tools/_tavily.py         # shared lazily-initialized Tavily client
   skills/qa/               # clarifying-question skill
   skills/research/         # outline → search → notes → cited brief
   skills/deep-research/    # rigorous multi-source investigations
@@ -114,7 +117,8 @@ For signed-in end users with private threads, switch to Supabase identity (`auth
 
 | Piece             | Role                                                           |
 | ----------------- | -------------------------------------------------------------- |
-| `internet_search` | Tavily web search (`TAVILY_API_KEY`)                           |
+| `internet_search` | Tavily web search — ranked snippets (`TAVILY_API_KEY`)         |
+| `fetch_page`      | Tavily extract — the readable text of a page (`TAVILY_API_KEY`) |
 | `paper_search`    | OpenAlex scholarly paper search (optional contact email)        |
 | `context7_docs`   | Focused library/framework documentation (`CONTEXT7_API_KEY`)   |
 | `skills/qa`       | Ask up to three clarifying questions when the request is vague |
@@ -124,6 +128,36 @@ For signed-in end users with private threads, switch to Supabase identity (`auth
 | `skills/daily-recap` | Summarize progress, decisions, open items, and next actions |
 | `skills/response-formatting` | Choose clear structure, formatting, and citation placement |
 
+
+### Enforced routing
+
+Skills use progressive disclosure: the model sees each skill's name and
+description and is trusted to `read_file` the matching `SKILL.md`. That is a
+suggestion, so a fast model complies only some of the time — the same reason a
+rule in `instructions.md` gets skipped.
+
+`middleware/skill_gate.py` turns the suggestion into a checked precondition. It
+runs inside `wrap_model_call`, so it inspects a draft answer **before** that
+answer reaches graph state and re-asks the model when something is missing:
+
+| Requirement | Checked against |
+| ----------- | --------------- |
+| The workflow for this request class was loaded | a `read_file` of the skill's `SKILL.md` in the current turn |
+| Something was actually looked up | a call to `internet_search`, `paper_search`, `context7_docs`, or `fetch_page` in the current turn |
+| Every URL in the answer is real | the URL appears in a tool result from the current turn |
+
+Request classes and the skills they require are `SKILL_RULES` in `agent.py`,
+evaluated in order, first match wins. Greetings, questions about the
+conversation, and pure text transformations are ungated. Corrections are
+appended to the model *request* only, so the thread the user sees carries no
+retry scaffolding and a rejected draft is never shown. After `max_retries` the
+last draft is returned rather than failing the turn — the gate is a bounded
+nudge, not a hard block.
+
+Managed Deep Agents does not expose LangGraph nodes or edges: `define_deep_agent`
+returns a spec that the managed runtime compiles. `middleware` is the supported
+hook, and authored middleware is spliced in after the deepagents base stack
+(skills, filesystem, subagents) and before the managed tail.
 
 `mda deploy` syncs `instructions.md` and `skills/**` to Context Hub. You can edit them in the LangSmith UI without a full code redeploy; a later deploy overwrites deploy-owned context from this repo.
 
@@ -218,7 +252,7 @@ Copy `.env.example` to `.env`. `mda deploy` loads `.env` and forwards non-reserv
 | `LANGSMITH_WORKSPACE_ID`                    | Required when the API key needs an explicit workspace (`mda deploy --workspace-id` also works) |
 | `LANGSMITH_PROJECT`, `LANGSMITH_TRACING`, … | Local / hosted tracing                                                                         |
 | `DEEPINFRA_API_KEY`, `DEEPINFRA_MODEL`      | Chat model in `agent.py`                                                                       |
-| `TAVILY_API_KEY`                            | `internet_search`                                                                              |
+| `TAVILY_API_KEY`                            | `internet_search`, `fetch_page`                                                                |
 | `CONTEXT7_API_KEY`                          | `context7_docs`                                                                                |
 | `OPENALEX_EMAIL`                            | Optional polite-pool contact for `paper_search`                                                |
 | `LANGFUSE_*`, `OTEL_*`                      | Optional OpenTelemetry export to Langfuse                                                      |

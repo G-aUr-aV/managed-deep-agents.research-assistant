@@ -1,6 +1,5 @@
 """Who may call this deployment."""
 
-import os
 from managed_deepagents import auth, define_identity
 
 # LangSmith workspace API keys authenticate callers through `x-api-key` while

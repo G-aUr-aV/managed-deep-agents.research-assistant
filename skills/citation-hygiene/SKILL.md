@@ -16,11 +16,12 @@ evidence. Use it alongside `research` for multi-source work.
 - Use authoritative secondary sources for explanation or context when a primary
   source is unavailable or too difficult to interpret.
 - Treat search-result snippets, blogs, forums, and aggregators as leads rather
-  than final evidence unless they are the source of the claim.
+  than final evidence unless they are the source of the claim. Follow a lead to
+  the thing it describes and `fetch_page` that.
 - For scholarly work, prefer the paper's DOI or the URL returned by
   `paper_search`. Do not invent or reconstruct paper links.
-- For current, high-stakes, or disputed claims, verify the source and date
-  before presenting the claim as fact.
+- For current, high-stakes, or disputed claims, `fetch_page` the source and
+  check its date before presenting the claim as fact.
 
 ## Claim-to-source matching
 
@@ -54,6 +55,8 @@ numbers, dates, quotes, and conclusions drawn from sources do.
 Before sending a sourced answer, check:
 
 - Every important factual claim has nearby supporting evidence.
+- Every URL and DOI came from a tool result in this turn. None was composed,
+  completed, or reconstructed from memory.
 - Each link opens the source being described and is not merely a search page.
 - Dates, versions, and numbers are taken from the cited source.
 - Inferences and uncertainty are labeled clearly.

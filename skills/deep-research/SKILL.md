@@ -26,8 +26,11 @@ question or state the assumption explicitly.
 
 - Search each subquestion separately with more than one wording.
 - Start with primary sources and authoritative datasets or papers.
-- Use `internet_search` for current web sources and `paper_search` for
-  scholarly literature.
+- Use `internet_search` for current web sources, `paper_search` for scholarly
+  literature, and `context7_docs` for library and framework APIs.
+- `fetch_page` every source a conclusion rests on. At this level of rigor a
+  search snippet is a lead, never evidence, and a source you have not read is
+  a source you cannot characterize.
 - Search for both supporting and contradicting evidence.
 - Track publication dates and prefer the most recent authoritative source when
   the subject changes over time.
@@ -43,7 +46,8 @@ source, record:
 - whether it confirms, qualifies, or contradicts another source.
 
 Do not treat search snippets, repeated reporting, or multiple pages copied from
-one source as independent confirmation.
+one source as independent confirmation. Two outlets restating one press
+release is one source.
 
 ## 4. Triangulate and resolve conflicts
 
