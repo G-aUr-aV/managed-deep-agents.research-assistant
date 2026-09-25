@@ -25,17 +25,31 @@ EVIDENCE_TOOLS = ("internet_search", "paper_search", "context7_docs", "fetch_pag
 #: First match wins, so these run narrowest-first and end with a catch-all.
 SKILL_RULES = (
     SkillRule(
-        name="recap",
+        name="conversation-recap",
         patterns=(
-            r"\b(daily )?recap\b",
             r"\bstand[- ]?up\b",
             r"\b(what did (we|i) (do|get done|cover|decide))\b",
-            r"\b(progress|day|weekly|end of day) (summary|report|review)\b",
+            r"\b(progress|end of day) (summary|report|review)\b",
+            r"\b(my|our) (day|week|work|progress) (summary|recap|review)\b",
             r"\bwhere (did|do) we (leave off|stand)\b",
         ),
-        skills=("daily-recap",),
-        # A recap reports the thread and durable notes, not the outside world.
+        # Conversation progress does not require a current-events lookup.
+        skills=("response-formatting",),
         require_evidence=False,
+    ),
+    SkillRule(
+        name="daily-tech-brief",
+        patterns=(
+            r"\b(?:daily|today'?s|morning) (?:tech |technology )?(?:brief|summary|digest|recap|update)\b",
+            r"\b(?:tech|technology) (?:news|brief|digest|headlines|updates?|recap)\b",
+            r"\b(?:latest|recent) (?:tech|technology)\b",
+            r"\bwhat(?:'s| has| is)? (?:happened|new) (?:recently|lately|today|in tech|in technology)\b",
+            r"\bwhat(?:'s| is) new\b",
+            r"\bwhat(?:'s| has)? happened in (?:AI|software|cybersecurity)\b",
+            r"\b(?:latest|recent) (?:AI|software|cybersecurity) (?:news|updates?|headlines)\b",
+            r"\b(?:news|headlines|current events) (?:today|recently|this week)\b",
+        ),
+        skills=("daily-tech-brief", "response-formatting"),
     ),
     SkillRule(
         name="deep-research",
@@ -49,7 +63,7 @@ SKILL_RULES = (
             r"\bwhich (one )?should (we|i)\b",
             r"\b(build vs\.? buy|migrate (from|to))\b",
         ),
-        skills=("deep-research", "citation-hygiene"),
+        skills=("deep-research", "citation-hygiene", "response-formatting"),
     ),
     SkillRule(
         name="research-brief",
@@ -63,13 +77,13 @@ SKILL_RULES = (
             # Several questions in one turn is a brief, not a lookup.
             r"\?[^?]*\?",
         ),
-        skills=("research",),
+        skills=("research", "citation-hygiene", "response-formatting"),
     ),
     SkillRule(
         name="lookup",
-        # Catch-all: a single-fact question still has to be looked up, but it
-        # does not need a multi-step workflow loaded first.
-        skills=(),
+        # Catch-all: a single-fact question still has to be looked up and
+        # formatted, but it does not need a multi-step research workflow.
+        skills=("response-formatting",),
     ),
 )
 

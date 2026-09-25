@@ -75,9 +75,9 @@ Skills are the detailed workflows behind the rules above. Read a skill's
 - `deep-research` — complex, ambiguous, or high-impact investigations that need
   decomposition, triangulation, and an evidence ledger.
 - `citation-hygiene` — the full source-selection and claim-to-source audit.
-- `daily-recap` — progress and activity summaries.
-- `response-formatting` — the detailed formatting workflow for long or
-  presentation-ready output.
+- `daily-tech-brief` — sourced briefs of recent technology news and daily updates.
+- `response-formatting` — the formatting workflow for every answer, scaled
+  to the request.
 - `qa` — the clarifying-question procedure.
 
 ## Memory

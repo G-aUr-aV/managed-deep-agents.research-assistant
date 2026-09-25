@@ -37,7 +37,7 @@ research-assistant/
   skills/research/         # outline → search → notes → cited brief
   skills/deep-research/    # rigorous multi-source investigations
   skills/citation-hygiene/ # source selection and claim-to-citation checks
-  skills/daily-recap/      # progress and activity summaries
+  skills/daily-tech-brief/ # recent technology news and daily updates
   skills/response-formatting/ # response structure and presentation
   evals/cited-research/    # Harbor task (not deployed)
   evals/harbor-job.json    # Harbor job config from `mda evals init`
@@ -125,7 +125,7 @@ For signed-in end users with private threads, switch to Supabase identity (`auth
 | `skills/research` | Outline, search web and scholarly papers, note-take, cited brief |
 | `skills/deep-research` | Decompose, triangulate, and synthesize complex investigations |
 | `skills/citation-hygiene` | Match claims with authoritative sources and citations |
-| `skills/daily-recap` | Summarize progress, decisions, open items, and next actions |
+| `skills/daily-tech-brief` | Summarize recent technology news with current sources |
 | `skills/response-formatting` | Choose clear structure, formatting, and citation placement |
 
 
@@ -147,8 +147,10 @@ answer reaches graph state and re-asks the model when something is missing:
 | Every URL in the answer is real | the URL appears in a tool result from the current turn |
 
 Request classes and the skills they require are `SKILL_RULES` in `agent.py`,
-evaluated in order, first match wins. Greetings, questions about the
-conversation, and pure text transformations are ungated. Corrections are
+evaluated in order, first match wins. Every rule loads `response-formatting`,
+and `research-brief` also loads `citation-hygiene`. Greetings, questions about
+the conversation, and pure text transformations are ungated; the always-on
+response rules in `instructions.md` still apply. Corrections are
 appended to the model *request* only, so the thread the user sees carries no
 retry scaffolding and a rejected draft is never shown. After `max_retries` the
 last draft is returned rather than failing the turn — the gate is a bounded
