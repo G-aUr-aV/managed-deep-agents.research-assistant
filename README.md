@@ -143,14 +143,23 @@ answer reaches graph state and re-asks the model when something is missing:
 | Requirement | Checked against |
 | ----------- | --------------- |
 | The workflow for this request class was loaded | a `read_file` of the skill's `SKILL.md` in the current turn |
-| Something was actually looked up | a call to `internet_search`, `paper_search`, `context7_docs`, or `fetch_page` in the current turn |
-| Every URL in the answer is real | the URL appears in a tool result from the current turn |
+| External evidence was gathered when needed | a call to `internet_search`, `paper_search`, `context7_docs`, or `fetch_page` in the current turn |
+| Research citation URLs have provenance | the URL appears in a tool result from the current turn |
 
 Request classes and the skills they require are `SKILL_RULES` in `agent.py`,
-evaluated in order, first match wins. Every rule loads `response-formatting`,
-and `research-brief` also loads `citation-hygiene`. Greetings, questions about
-the conversation, and pure text transformations are ungated; the always-on
-response rules in `instructions.md` still apply. Corrections are
+evaluated in order, first match wins after local-task exemptions. For mixed
+requests needing outside evidence, rules that waive evidence are skipped.
+Every rule loads `response-formatting`,
+and `research-brief` also loads `citation-hygiene`. Requests scoped to saved
+memories, supplied text/code/data, or the conversation are ungated, as are
+greetings, text transformations, simple calculations, and creative writing.
+Explicit requests not to browse are respected. Memory retrieval still requires
+reading the relevant notes; it does not count as fresh external evidence.
+Mixed requests to verify or add external facts retain research enforcement,
+and a URL alone still needs fetching. Routing uses conservative text patterns;
+unrecognized requests retain the normal lookup default. Recaps and transformations
+may preserve links from their input without claiming fresh verification.
+The always-on response rules in `instructions.md` still apply. Corrections are
 appended to the model *request* only, so the thread the user sees carries no
 retry scaffolding and a rejected draft is never shown. After `max_retries` the
 last draft is returned rather than failing the turn — the gate is a bounded
@@ -164,6 +173,12 @@ hook, and authored middleware is spliced in after the deepagents base stack
 `mda deploy` syncs `instructions.md` and `skills/**` to Context Hub. You can edit them in the LangSmith UI without a full code redeploy; a later deploy overwrites deploy-owned context from this repo.
 
 ## Evaluate
+
+Run the offline middleware regression suite (no credentials or network needed):
+
+```bash
+.venv/bin/python -m unittest discover -s tests -v
+```
 
 Managed Deep Agent evals are [Harbor](https://www.harborframework.com/docs/tasks) evals. Tasks are direct children of `evals/` (this project includes `evals/cited-research/`). `evals/` is not included in the deployed build.
 
